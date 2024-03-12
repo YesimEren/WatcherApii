@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34031.279
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatcherApi", "WatcherApı\WatcherApi.csproj", "{1D31F60F-CB04-490D-959F-E767EBB71397}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WatcherUI", "WatcherUI\WatcherUI.csproj", "{CA91EAC5-BB83-46F6-90AF-B0642BFCAF5E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{959B3E88-0291-456C-AAB8-655A87FA1370}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1D31F60F-CB04-490D-959F-E767EBB71397}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D31F60F-CB04-490D-959F-E767EBB71397}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D31F60F-CB04-490D-959F-E767EBB71397}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D31F60F-CB04-490D-959F-E767EBB71397}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA91EAC5-BB83-46F6-90AF-B0642BFCAF5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA91EAC5-BB83-46F6-90AF-B0642BFCAF5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA91EAC5-BB83-46F6-90AF-B0642BFCAF5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA91EAC5-BB83-46F6-90AF-B0642BFCAF5E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7095EE12-86A7-4291-88FC-1EE06AFB0B4F}
+	EndGlobalSection
+EndGlobal

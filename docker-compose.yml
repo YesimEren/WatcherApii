@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  watcherapi:
+    image: watcherapi-image
+    ports:
+      - "8081:80"
+    networks:
+      - watcher-network
+
+  watcherui:
+    image: denemee
+    ports:
+      - "8080:80"
+    networks:
+      - watcher-network
+
+networks:
+  watcher-network:
