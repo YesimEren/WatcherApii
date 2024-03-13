@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   watcherapi:
-    image: watcherapi-image
+    image: yesimeren/project:watcherapi-image-v1
     ports:
       - "8081:80"
     networks:
       - watcher-network
 
   watcherui:
-    image: denemee
+    image: yesimeren/project:watcherui-image-v1
     ports:
       - "8080:80"
     networks:

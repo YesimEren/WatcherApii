@@ -67,7 +67,7 @@ function toggleVirtualMachineStatus() {
     document.getElementById("loadingMessage").style.display = "block";
 
     // AJAX isteği yaparak sanal makina durumunu kontrol et ve değiştir
-    fetch(`http://localhost:8081/api/WatcherWebAPI/${selectedVirtualMachine}/toggle`,
+    fetch(`https://localhost:8081/api/WatcherWebAPI/${selectedVirtualMachine}/toggle`,
         {
             method: 'POST',
             mode: 'cors',
