@@ -1,22 +1,20 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Renci.SshNet;
 using System.Diagnostics;
 using WatcherApi.Classes;
 
-namespace WatcherApi.Controllers
+namespace WatchApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    
-    public class WatcherWebAPIController : ControllerBase
+    public class WatcherApiController : ControllerBase
     {
         private readonly Context _context;
         private readonly DataQuery _dataQuery;
-        
 
-        public WatcherWebAPIController(Context context, DataQuery dataQuery)
+
+        public WatcherApiController(Context context, DataQuery dataQuery)
         {
             _context = context;
             _dataQuery = dataQuery;
@@ -53,8 +51,7 @@ namespace WatcherApi.Controllers
             }
             catch (Exception ex)
             {
-                var errorResponse = new { Message = ex.Message, StackTrace = ex.StackTrace };
-                return StatusCode(500, errorResponse);
+                return StatusCode(500, new { ex.Message, ex.StackTrace });
             }
         }
 
@@ -86,15 +83,20 @@ namespace WatcherApi.Controllers
             }
         }
 
-        [Authorize(Roles = "Admin, IT")]
+
         [HttpGet]
         public IActionResult GetAllVirtualMachines()
         {
             try
             {
                 var virtualMachines = _context.Machines.ToList();
-                // IsRunning değerini doğru bir şekilde set etmek için bu kısmı güncelleyin
-                var result = virtualMachines.Select(vm => new { vm.Id, vm.Host, vm.UserName, IsRunning = IsVirtualMachineRunning(vm) });
+                var result = virtualMachines.Select(vm => new
+                {
+                    vm.Id,
+                    vm.Host,
+                    vm.UserName,
+                    IsRunning = IsVirtualMachineRunning(vm)
+                });
 
                 return Ok(result);
             }
@@ -128,28 +130,20 @@ namespace WatcherApi.Controllers
             try
             {
                 var virtualMachine = _context.Machines.FirstOrDefault(vm => vm.Host == host);
+                if (virtualMachine == null)
+                    return NotFound("Sanal makine bilgisi bulunamadı");
 
-                if (virtualMachine != null)
+                bool isMachineRunning = IsVirtualMachineRunning(virtualMachine);
+                if (isMachineRunning)
                 {
-                    bool isMachineRunning = IsVirtualMachineRunning(virtualMachine);
-
-                    if (isMachineRunning)
-                    {
-                        // Sanal makine açıksa, kapat
-                        CloseVirtualMachine(virtualMachine);
-                    }
-                    else
-                    {
-                        // Sanal makine kapalıysa, aç
-                        OpenVirtualMachine(virtualMachine);
-                    }
-
-                    return Ok(new { Message = $"{virtualMachine.Host} IP'li sanal makine durumu değiştirildi" });
+                    CloseVirtualMachine(virtualMachine);
                 }
                 else
                 {
-                    return NotFound("Sanal makine bilgisi bulunamadı");
+                    OpenVirtualMachine(virtualMachine);
                 }
+
+                return Ok(new { Message = $"{virtualMachine.Host} IP'li sanal makine durumu değiştirildi" });
             }
             catch (Exception ex)
             {
@@ -159,8 +153,7 @@ namespace WatcherApi.Controllers
 
         private void OpenVirtualMachine(MachineInfo virtualMachine)
         {
-            string arguments = $"startvm \"{virtualMachine.VirtualName}\"";
-            ExecuteVBoxManageCommand(arguments);
+            ExecuteVBoxManageCommand($"startvm \"{virtualMachine.VirtualName}\"");
         }
 
         private void CloseVirtualMachine(MachineInfo virtualMachine)
@@ -173,30 +166,28 @@ namespace WatcherApi.Controllers
         {
             try
             {
-                // VBoxManage komutunu başlat
-                Process process = new Process();
-                process.StartInfo.FileName = "VBoxManage";
-                process.StartInfo.Arguments = arguments;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "VBoxManage",
+                        Arguments = arguments,
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
                 process.Start();
 
-                // Çıktıyı oku (isteğe bağlı)
                 string output = process.StandardOutput.ReadToEnd();
-
                 process.WaitForExit();
-                process.Close();
-
-                // output değişkenini kullanarak gerekli işlemleri yapabilirsiniz
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Hata oluştu: {ex.Message}");
-                // Hata durumunda gerekli işlemleri yapabilirsiniz
             }
         }
-    
+
         [HttpGet("docker/{host}")]
         public IActionResult DockerStatus(string host)
         {
@@ -240,14 +231,14 @@ namespace WatcherApi.Controllers
                         string dockercommand = "docker --version";
 
                         SshCommand command = client.RunCommand(dockercommand);
-                        // SSH komutu başarılı bir şekilde çalıştıysa ve çıktı içinde "Docker" geçiyorsa Docker yüklüdür
+
                         return command.ExitStatus == 0 && command.Result.Contains("Docker");
 
                     }
 
                     else
                     {
-                        return false; // Sunucuya SSH bağlantısı yoksa Docker kurulu değil.
+                        return false;
                     }
                 }
             }
@@ -263,113 +254,61 @@ namespace WatcherApi.Controllers
         {
             try
             {
-                //Verilen hosta göre verileri veritabanınsan çek
                 var virtualMachine = _context.Machines.FirstOrDefault(x => x.Host == host);
-                if (virtualMachine != null)
+                if (virtualMachine == null)
+                    return NotFound("Sanal makine bilgisi bulunamadı");
+
+                var commandResult = ExecuteCommand(virtualMachine, "free -m");
+
+                double totalMemory = ParseMemory(commandResult, 1);
+                double usedMemory = ParseMemory(commandResult, 2);
+                double usagePercentage = (usedMemory / totalMemory) * 100;
+
+                string status = usagePercentage >= 80 ? "Red" : "Green";
+                var response = new
                 {
-                    //SHH aşağıdaki komutu çalıştır.
-                    string command = "free -m";
+                    UsedMemory = usedMemory,
+                    UsagePercentage = usagePercentage,
+                    Status = status,
+                    TotalMemory = totalMemory
+                };
 
-                    //free -m seçilen IP adresinde çalıştır.ve çıktısını alır.
-                    var commandResult = ExecuteCommand(virtualMachine, command);
-
-                    //Çıktıyı parçala
-                    double totalMemory = ParseTotalMemory(commandResult);
-                    double usedMemory = ParseUsedMemory(commandResult);
-                    double usagePercentage = (usedMemory / totalMemory) * 100;
-
-                    //Eşik değer kontrolü yap.
-                    string status = "Green";
-                    if (usagePercentage >= 80)
-                    {
-                        status = "Red";
-                    }
-
-                    //Sonuçları Json Formatına dönüştür.
-                    return Ok(new
-                    {
-                        UsedMemory = usedMemory,
-                        UsagePercentage = usagePercentage,
-                        Status = status,
-                        TotalMemory = totalMemory
-
-                    });
-
-                }
-                else
-                {
-                    return NotFound("Sanal Makina Bilgisi Bulunamadı");
-                }
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                //Hata durumuna uuygun HTTP durm kodu ve hata mesajı ver.
-                var error = new { Message = ex.Message, StackTrace = ex.StackTrace };
-                return StatusCode(500, error);
+                return StatusCode(500, new { ex.Message, ex.StackTrace });
             }
         }
         private string ExecuteCommand(MachineInfo virtualMachine, string command)
         {
             try
             {
-                //SSH bağlantısı için gerekli olan bilgileri içeren nesne
-                PasswordConnectionInfo connectionInfo = new PasswordConnectionInfo(virtualMachine.Host, virtualMachine.Port, virtualMachine.UserName, virtualMachine.Password);
-                //SSH Bağlantısı kur.
-                using (SshClient client = new SshClient(connectionInfo))
+                var connectionInfo = new PasswordConnectionInfo(virtualMachine.Host, virtualMachine.Port, virtualMachine.UserName, virtualMachine.Password);
+                using (var client = new SshClient(connectionInfo))
                 {
                     client.Connect();
                     System.Threading.Thread.Sleep(5000);
 
-                    //SSH Bağlnatısı başarılı ise komutu çalıştır çıktısını al.
-                    if (client.IsConnected)
-                    {
-                        var commandResult = client.RunCommand(command);
-                        // Çalıştırılan komutun çıktısını geri döner
-                        if (commandResult.ExitStatus == 0)
-                        {
-                            var output = commandResult.Result;
-                            return output;
-                        }
-                        else
-                        {
-                            var errorMesage = commandResult.Error;
-                            throw new Exception($"Komut çalıştırma hatası:{errorMesage}");
-                        }
-                    }
-                    else
-                    {
-                        //SSH Bağlantısı kurulamazsa hata fırlat.
-                        throw new Exception("SSH Bağlantısı kurulamadı");
-                    }
+                    var commandResult = client.RunCommand(command);
+                    if (commandResult.ExitStatus != 0)
+                        throw new Exception($"Komut çalıştırma hatası: {commandResult.Error}");
+
+                    return commandResult.Result;
                 }
             }
             catch (Exception ex)
             {
-                // Hata durumunda uygun bir hata mesajı ile istisna fırlat
                 throw new Exception($"Komut çalıştırma hatası: {ex.Message}");
             }
         }
 
-        private static double ParseUsedMemory(string output)
+        private static double ParseMemory(string output, int index)
         {
-            string[] lines = output.Split('\n');
-            string usedMemoryLine = lines[1];
-
-            string[] values = usedMemoryLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            double usedMemory = double.Parse(values[2]);
-
-            return usedMemory;
-        }
-
-        private static double ParseTotalMemory(string output)
-        {
-            string[] lines = output.Split('\n');
-            string totalMemoryLine = lines[1];
-
-            string[] values = totalMemoryLine.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            double totalMemory = double.Parse(values[1]);
-
-            return totalMemory;
+            var lines = output.Split('\n');
+            var values = lines[1].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            return double.Parse(values[index]);
         }
     }
 }
+
