@@ -1,8 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace WatcherApi.Classes
 {
-    public class Context:DbContext
+    public class Context :IdentityDbContext<User,Role,int>
     {
         public Context(DbContextOptions<Context> options) : base(options) { }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

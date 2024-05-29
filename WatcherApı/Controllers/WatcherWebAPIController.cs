@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Renci.SshNet;
 using System.Diagnostics;
@@ -8,16 +9,21 @@ namespace WatcherApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    
     public class WatcherWebAPIController : ControllerBase
     {
         private readonly Context _context;
+        private readonly DataQuery _dataQuery;
+        
 
-        public WatcherWebAPIController(Context context)
+        public WatcherWebAPIController(Context context, DataQuery dataQuery)
         {
             _context = context;
+            _dataQuery = dataQuery;
         }
 
-        [HttpGet("{host}")]
+
+        [HttpGet("status/{host}")]
         public IActionResult CheckVirtualMachineStatus(string host)
         {
             try
@@ -80,6 +86,7 @@ namespace WatcherApi.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin, IT")]
         [HttpGet]
         public IActionResult GetAllVirtualMachines()
         {
@@ -97,6 +104,23 @@ namespace WatcherApi.Controllers
             }
 
         }
+
+        [HttpGet("data/{refnr}")]
+        public IActionResult GetData(string refnr)
+        {
+            var result = _dataQuery.GetAddressByRefnr(refnr);
+
+            return Ok(result);
+
+
+        }
+
+        [HttpGet("sendung")]
+        public IActionResult GetSendungByDateRange(string startDate, string endDate)
+        {
+            return _dataQuery.GetSendungByDateRange(startDate, endDate);
+        }
+
 
         [HttpPost("{host}/toggle")]
         public IActionResult ToggleVirtualMachineStatus(string host)
@@ -172,7 +196,7 @@ namespace WatcherApi.Controllers
                 // Hata durumunda gerekli işlemleri yapabilirsiniz
             }
         }
-
+    
         [HttpGet("docker/{host}")]
         public IActionResult DockerStatus(string host)
         {
@@ -234,7 +258,6 @@ namespace WatcherApi.Controllers
                 return false;
             }
         }
-
         [HttpGet("memory/{host}")]
         public IActionResult GetMemoryUsage(string host)
         {

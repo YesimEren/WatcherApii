@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WatcherApi.Classes;
 
@@ -10,9 +11,11 @@ using WatcherApi.Classes;
 namespace WatcherApi.Migrations
 {
     [DbContext(typeof(Context))]
-    partial class ContextModelSnapshot : ModelSnapshot
+    [Migration("20240521074357__newdatabas")]
+    partial class _newdatabas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,7 +48,7 @@ namespace WatcherApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Admins", (string)null);
+                    b.ToTable("Admins");
                 });
 
             modelBuilder.Entity("WatcherApi.Classes.MachineInfo", b =>
@@ -77,7 +80,7 @@ namespace WatcherApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Machines", (string)null);
+                    b.ToTable("Machines");
                 });
 #pragma warning restore 612, 618
         }
